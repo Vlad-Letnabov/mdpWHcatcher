@@ -15,7 +15,7 @@ app.logger.addHandler(handler)
 
 
 def readconfig():
-    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='')
+    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo')
     path =  os.path.abspath("config.xml") #'config.xml'
     app.logger.info(path)
     tree = ET.parse(path)
@@ -68,7 +68,7 @@ def catchwh():
 
 def call_script(script):
     app.logger.info(script)
-    call_arr = ['/usr/bin/sudo', 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+    call_arr = [{config['sudo']}, 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     if config['fromuser'] and config['fromuser']!='':
         call_arr = ['/usr/bin/sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     app.logger.info(str(call_arr))
