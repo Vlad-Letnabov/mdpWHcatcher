@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask,request
 import subprocess
 import xml.etree.cElementTree as ET
 import os
@@ -38,7 +38,35 @@ def hello_world():
     return 'Hello World!'
 
 @app.route('/catchwh/<string:script>', methods=['GET'])
-def catchwh(script):
+def catchwhget(script):
+    app.logger.info(script)
+    call_script(script)
+
+@app.route('/catchwh/', methods=['POST','GET'])
+def catchwh():
+    app.logger.info(f"method: {request.method}")
+    if request.method == 'POST':
+        script=None
+        if request.is_json:
+            data = request.get_json()
+            app.logger.info(str(data))
+            if 'tags' in data:
+                if 'script' in data['tags']:
+                    script = data['tags']['script']
+        else:
+            script = request.form.get('script')
+        if script:
+            app.logger.info(f"get via POST: {script}")
+            return call_script(script)
+    else:
+        script = request.args.get('script')
+        app.logger.info(f"args: {request.args}, {script}")
+        if script:
+            app.logger.info(f"get via GET: {script}")
+            return call_script(script)
+    return {}
+
+def call_script(script):
     app.logger.info(script)
     call_arr = ['/usr/bin/sudo', 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     if config['fromuser'] and config['fromuser']!='':
