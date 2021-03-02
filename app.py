@@ -7,7 +7,7 @@ from logging.handlers import RotatingFileHandler
 
 strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
 logging.basicConfig(filename='wh.log', level=logging.DEBUG, format=strfmt)
-handler = RotatingFileHandler('wh.log', maxBytes=10000, backupCount=1)
+handler = RotatingFileHandler('wh.log', maxBytes=1000000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
