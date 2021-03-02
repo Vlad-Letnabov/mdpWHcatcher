@@ -3,22 +3,21 @@ import subprocess
 import xml.etree.cElementTree as ET
 import os
 import logging
+from logging.handlers import RotatingFileHandler
+
+strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
+logging.basicConfig(filename='wh.log', level=logging.DEBUG, format=strfmt)
+handler = RotatingFileHandler('wh.log', maxBytes=10000, backupCount=1)
+handler.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
-#format = '%(asctime)-15s %(clientip)s %(user)-8s %(message)s'
-logger = logging.getLogger('logger')
-logger.setLevel(logging.INFO)
-strfmt = '%(asctime)s %(thread)d %(clientip)s %(user)s %(name)s [%(levelname)s] %(funcName)s: %(message)s'
-# строка формата времени
-datefmt = '%Y-%m-%d %H:%M:%S'
-# создаем форматтер
-formatter = logging.Formatter(fmt=strfmt, datefmt=datefmt)
+app.logger.addHandler(handler)
 
 
 def readconfig():
     config=dict(host='localhost',user='noboby',path='/tmp',fromuser='')
     path =  os.path.abspath("config.xml") #'config.xml'
-    logging.info(path)
+    app.logger.info(path)
     tree = ET.parse(path)
     root = tree.getroot()
     for key,value in config.items():
@@ -27,26 +26,28 @@ def readconfig():
             if node.text:
                 config[key] = node.text
         except BaseException as exp:
-            logging.error(str(exp))
-            logging.error('check config')
+            app.logger.error(str(exp))
+            app.logger.error('check config')
     return config
 
 config = readconfig()
-logging.info(config)
+app.logger.info(config)
 @app.route('/')
 def hello_world():
+    app.logger.info('hello_world page')
     return 'Hello World!'
 
 @app.route('/catchwh/<string:script>', methods=['GET'])
 def catchwh(script):
-    logging.info(script)
+    app.logger.info(script)
     call_arr = ['sudo', 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     if config['fromuser'] and config['fromuser']!='':
         call_arr = ['sudo', 'ssh', '-u', f"{config['fromuser']}", f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
-    logging.info(call_arr)
+    app.logger.info(str(call_arr))
     result = subprocess.call(call_arr)
     return {'result':result}
 
 if __name__ == '__main__':
-    logging.info('run app on 0.0.0.0:5000')
+
+    app.logger.info('run app on 0.0.0.0:5000')
     app.run(host='0.0.0.0')
