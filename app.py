@@ -40,9 +40,9 @@ def hello_world():
 @app.route('/catchwh/<string:script>', methods=['GET'])
 def catchwh(script):
     app.logger.info(script)
-    call_arr = ['sudo', 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+    call_arr = ['/usr/bin/sudo', 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     if config['fromuser'] and config['fromuser']!='':
-        call_arr = ['sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+        call_arr = ['/usr/bin/sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     app.logger.info(str(call_arr))
     result = subprocess.call(call_arr)
     return {'result':result}
