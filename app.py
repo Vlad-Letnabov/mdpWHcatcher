@@ -21,7 +21,7 @@ app.logger.addHandler(handler)
 
 
 def readconfig():
-    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo', sshkey='key')
+    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo', port='22', sshkey='key')
     path =  os.path.abspath("config.xml") #'config.xml'
     print(path)
     app.logger.info(path)
@@ -38,8 +38,6 @@ def readconfig():
         except BaseException as exp:
             app.logger.error(str(exp))
             app.logger.error('check config')
-    print('key:',config['sshkey'])
-    print('port:',config['port'])
     return config
 
 config = readconfig()
@@ -81,6 +79,31 @@ def catchwh():
             return call_script(script)
     return {}
 
+def check_errors(stdout,stderr):
+    out = ''
+    error = ''
+    error_code =255
+    len_out=0
+    len_err=0
+    for line in stdout:
+        out+=line.strip('\n')
+        len_out=1
+    for line in stderr:
+        error+=line.strip('\n')
+        len_err=1
+    if len_out>0:
+        app.logger.info(f'OUT: {out}')
+        if out.upper().rstrip()=='OK':
+            error_code=0
+            error=''
+    if len_err>0:
+        if 'No such file or directory' in error:
+            error='Script error'
+    print(len_out,len_err)
+
+    result = dict(result=error_code, error=error)
+    return result
+
 def call_script(script):
     app.logger.info(script)
     call_arr = []
@@ -108,9 +131,10 @@ def call_script(script):
     except Exception as exp:
         app.logger.error(f'pure exception: {exp}')
 
+    result = check_errors(stdout,stderr)
 
 
-    return {'result':stdout, 'error': stderr}
+    return result #{'result':stdout, 'error': stderr}
 
 if __name__ == '__main__':
 
