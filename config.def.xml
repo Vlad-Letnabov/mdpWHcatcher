@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <host></host>
+    <port></port>
     <user></user>
     <path></path>
     <fromuser></fromuser>
     <sudo></sudo>
+    <sshkey></sshkey>
 </config>

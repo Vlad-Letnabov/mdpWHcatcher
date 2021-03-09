@@ -4,34 +4,49 @@ import xml.etree.cElementTree as ET
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+import paramiko
 
 strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
 logging.basicConfig(filename='wh.log', level=logging.DEBUG, format=strfmt)
 handler = RotatingFileHandler('wh.log', maxBytes=1000000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(
+    paramiko.AutoAddPolicy())
+
+
 app = Flask(__name__)
 app.logger.addHandler(handler)
 
 
 def readconfig():
-    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo')
+    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo', sshkey='key')
     path =  os.path.abspath("config.xml") #'config.xml'
+    print(path)
     app.logger.info(path)
-    tree = ET.parse(path)
+    tree = ET.parse('config.xml')
     root = tree.getroot()
     for key,value in config.items():
         try:
+            print(key)
             node = root.find(f'./{key}')
             if node.text:
                 config[key] = node.text
+            if key=='port' and (node.text=='' or node.text==None):
+                config[key]=22
         except BaseException as exp:
             app.logger.error(str(exp))
             app.logger.error('check config')
+    print('key:',config['sshkey'])
+    print('port:',config['port'])
     return config
 
 config = readconfig()
 app.logger.info(config)
+ssh_key = paramiko.RSAKey.from_private_key_file(f"keys/{config['sshkey']}")
+
+
 @app.route('/')
 def hello_world():
     app.logger.info('hello_world page')
@@ -68,12 +83,34 @@ def catchwh():
 
 def call_script(script):
     app.logger.info(script)
-    call_arr = [{config['sudo']}, 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
-    if config['fromuser'] and config['fromuser']!='':
-        call_arr = ['/usr/bin/sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+    call_arr = []
+    #call_arr = [{config['sudo']}, 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+    #if config['fromuser'] and config['fromuser']!='':
+    #    call_arr = ['/usr/bin/sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     app.logger.info(str(call_arr))
-    result = subprocess.call(call_arr)
-    return {'result':result}
+    #result = subprocess.call(call_arr)
+    stdin, stdout, stderr = (555,555,555)
+    app.logger.info(f"try to connect... hostname={config['host']}, username={config['user']}, port={config['port']}")
+    try:
+        ssh.connect(hostname=config['host'], username=config['user'], port=config['port'], pkey=ssh_key)
+        app.logger.info(f"try exec command: {config['path']}{script}")
+        stdin, stdout, stderr = ssh.exec_command(f"{config['path']}{script}")
+    except paramiko.PasswordRequiredException as exp:
+        app.logger.error(f'password required: {exp}')
+    except paramiko.BadAuthenticationType as exp:
+        app.logger.error(f'bad auth type: {exp}')
+    except paramiko.BadHostKeyException as exp:
+        app.logger.error(f'bad host key: {exp}')
+    except paramiko.AuthenticationException as exp:
+        app.logger.error(f'auth exception: {exp}')
+    except paramiko.SSHException as exp:
+        app.logger.error(f'core ssh exception: {exp}')
+    except Exception as exp:
+        app.logger.error(f'pure exception: {exp}')
+
+
+
+    return {'result':stdout, 'error': stderr}
 
 if __name__ == '__main__':
 
