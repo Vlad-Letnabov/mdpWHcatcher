@@ -85,6 +85,8 @@ def check_errors(stdout,stderr):
     error_code =255
     len_out=0
     len_err=0
+    if isinstance(stdout,int) or isinstance(stderr,int):
+        return dict(result=error_code, error='Exec exception')
     for line in stdout:
         out+=line.strip('\n')
         len_out=1
@@ -99,10 +101,8 @@ def check_errors(stdout,stderr):
     if len_err>0:
         if 'No such file or directory' in error:
             error='Script error'
-    print(len_out,len_err)
 
-    result = dict(result=error_code, error=error)
-    return result
+    return dict(result=error_code, error=error)
 
 def call_script(script):
     app.logger.info(script)
@@ -131,10 +131,7 @@ def call_script(script):
     except Exception as exp:
         app.logger.error(f'pure exception: {exp}')
 
-    result = check_errors(stdout,stderr)
-
-
-    return result #{'result':stdout, 'error': stderr}
+    return check_errors(stdout,stderr) #{'result':stdout, 'error': stderr}
 
 if __name__ == '__main__':
 
