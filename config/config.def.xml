@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <host></host>
+    <port></port>
+    <user></user>
+    <path></path>
+    <fromuser></fromuser>
+    <sudo></sudo>
+    <sshkey></sshkey>
+    <system></system> <!-- zammad/redmine -->
+    <zammad>
+        <host></host>
+        <port></port>
+        <url>issues.json</url>
+        <proto>http</proto>
+        <format>json</format>
+        <status_new>1</status_new>
+        <priority_id>3</priority_id>
+        <customer_email>grafana@local.host</customer_email>
+        <status_list>1,2,3</status_list>
+        <token>9</token>
+    </zammad>
+</config>

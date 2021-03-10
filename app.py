@@ -6,8 +6,8 @@ from config import Config
 import requests
 
 strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
-logging.basicConfig(filename='wh.log', level=logging.DEBUG, format=strfmt)
-handler = RotatingFileHandler('wh.log', maxBytes=1000000, backupCount=1)
+logging.basicConfig(filename='logs/wh.log', level=logging.DEBUG, format=strfmt)
+handler = RotatingFileHandler('logs/wh.log', maxBytes=10000000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 
 ssh = paramiko.SSHClient()

@@ -9,7 +9,7 @@ class Config():
         config = dict()
 
     def get_config(self):
-        tree = ET.parse('config.xml')
+        tree = ET.parse('config/config.xml')
         root = tree.getroot()
         # все данные
         #print('Expertise Data:')

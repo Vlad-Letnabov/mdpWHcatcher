@@ -57,3 +57,11 @@ ist@mdp-master-1:~$ curl -d '{"title":"[Alerting] Panel Title alert", "message":
 < 
 * Closing connection 0
 </code></pre>
+
+## Mount folders in docker
+
+<pre><code class="shell">
+ist@mdp-master-1:~$ docker run -d -P --name mdpcatcher -v /src/mdpWHcatcher:/app mdpwhcatcher/app python app.py
+</code></pre>
+
+## Mount folders using compose 

@@ -14,6 +14,6 @@ RUN python3 -m pip install -r requirements.txt
 
 COPY . /app
 
-ENTRYPOINT [ "python3" ]
+#ENTRYPOINT [ "python3" ]
 
-CMD [ "app.py" ]
+CMD [ "gunicorn", "--workers", "3", "--bind", "0.0.0.0:5000", "-m", "007", "wsgi:app" ]
