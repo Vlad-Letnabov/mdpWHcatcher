@@ -1,13 +1,9 @@
 from flask import Flask,request,make_response
-import subprocess
-import xml.etree.cElementTree as ET
-import os
 import logging
 from logging.handlers import RotatingFileHandler
 import paramiko
 from config import Config
 import requests
-import jsonify
 
 strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
 logging.basicConfig(filename='wh.log', level=logging.DEBUG, format=strfmt)
@@ -213,6 +209,7 @@ def catchwh():
         if script:
             app.logger.info(f"get via GET: {script}")
             result=call_script(script)
+
     response = make_response(result['message'], int(result['code']))
     response.headers["Content-Type"] = "application/json"
     return response
