@@ -1,26 +1,58 @@
-from flask import Flask,request,make_response
+from flask import Flask, request, make_response
 import logging
 from logging.handlers import RotatingFileHandler
 import paramiko
 from config import Config
 import requests
+import os
 
+BASEPATH = os.path.abspath(os.path.dirname(__file__))
+print('BASE', BASEPATH)
+
+def check_dir(dir):
+    print('check_dir:', dir)
+    if not dir:
+        return False
+    if isinstance(dir, list):
+        print('is list', dir)
+        result = False
+        for item in dir:
+            result = check_dir(item)
+            if not result:
+                break
+        return result
+    elif isinstance(dir, str):
+        print('is string', dir)
+        dir = ''.join([BASEPATH,'/', dir])
+        try:
+            if not os.path.exists(dir):
+                os.mkdir(dir)
+        except BaseException as exp:
+            print('error create file:', exp)
+            return False
+        return True
+    else:
+        return False
+
+
+dirs = ['config', 'keys', 'logs']
+check_dir(dirs)
 strfmt = '%(asctime)s %(thread)d %(name)s [%(levelname)s] %(funcName)s: %(message)s'
-logging.basicConfig(filename='logs/wh.log', level=logging.DEBUG, format=strfmt)
-handler = RotatingFileHandler('logs/wh.log', maxBytes=10000000, backupCount=1)
+logging.basicConfig(filename=f'{BASEPATH}/logs/wh.log', level=logging.DEBUG, format=strfmt)
+handler = RotatingFileHandler(f'{BASEPATH}/logs/wh.log', maxBytes=10000000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(
     paramiko.AutoAddPolicy())
 
-
 app = Flask(__name__)
 app.logger.addHandler(handler)
 
 
 def readconfig():
-    config=dict(host='localhost',user='noboby',path='/tmp',fromuser='',sudo='/usr/bin/sudo', port='22', sshkey='key')
+    config = dict(host='localhost', user='noboby', path='/tmp', fromuser='', sudo='/usr/bin/sudo', port='22',
+                  sshkey='key')
     '''path =  os.path.abspath("config.xml") #'config.xml'
     print(path)
     app.logger.info(path)
@@ -37,12 +69,15 @@ def readconfig():
         except BaseException as exp:
             app.logger.error(str(exp))
             app.logger.error('check config')'''
-    config = Config().get_config()
+    config = Config(BASEPATH).get_config()
     if not config['port']:
-        config['port']=22
+        config['port'] = 22
     return config
 
+
 config = readconfig()
+print(config)
+exit(0)
 app.logger.info(config)
 ssh_key = paramiko.RSAKey.from_private_key_file(f"keys/{config['sshkey']}")
 
@@ -51,6 +86,7 @@ ssh_key = paramiko.RSAKey.from_private_key_file(f"keys/{config['sshkey']}")
 def hello_world():
     app.logger.info('hello_world page')
     return 'Hello World!'
+
 
 def create_ticket_in_sd(tmpl_text, user, message_id):
     ticket = None
@@ -66,11 +102,11 @@ def create_ticket_in_sd(tmpl_text, user, message_id):
             "body": tmpl_text,
             "type": "note",
             "internal": False,
-            #"type": "telegram personal-message",
+            # "type": "telegram personal-message",
             "sender": "Customer",
-            "to": "@ist_dit_tmpl_bot", #IST_SD_BOT
-            #"reply_to": "@TGW-BOT-GRP",
-            #"preferences": {
+            "to": "@ist_dit_tmpl_bot",  # IST_SD_BOT
+            # "reply_to": "@TGW-BOT-GRP",
+            # "preferences": {
             #    "message": {
             #        "message_id": str(message_id) + '.' + str(user['login']) + '@telegram',
             #        "from": {
@@ -82,11 +118,11 @@ def create_ticket_in_sd(tmpl_text, user, message_id):
             #        }
             #    },
             #    "update_id": 956427754
-            #},
+            # },
         },
         "note": tmpl_text,
         "sdrequesttype": "addmask",
-        "preferences":{
+        "preferences": {
             "channel_id": config['channel']['id'],
             "telegram": {
                 "bid": (config['token'].split(':'))[0],
@@ -100,10 +136,10 @@ def create_ticket_in_sd(tmpl_text, user, message_id):
                 ticket = responce.json()
                 print(ticket)
                 return dict(id=ticket['id'],
-                     number=ticket['number'],
-                     title=ticket['title'],
-                     tmplbeeline=ticket['tmpbeeline'],
-                     tmplmegafon=ticket['tmplmegafone'])
+                            number=ticket['number'],
+                            title=ticket['title'],
+                            tmplbeeline=ticket['tmpbeeline'],
+                            tmplmegafon=ticket['tmplmegafone'])
     except BaseException as exp:
         print('Error create user: ', exp)
         logging.error('Error create user: ' + str(exp))
@@ -131,7 +167,7 @@ def create_ticket(data):
     }
 
     '''
-    if data['state'].lower()!='alerting':
+    if data['state'].lower() != 'alerting':
         return False
     query = f"{Config().get_url(config)}api/v1/tickets"
 
@@ -150,7 +186,7 @@ def create_ticket(data):
         "note": data['message']}
     print('URL:', query)
     print(create_json)
-    #Authorization: Token token=
+    # Authorization: Token token=
     headers = {
         'Authorization': f"Token token={config['zammad']['token']}"
     }
@@ -172,21 +208,23 @@ def create_ticket(data):
         print('Error create user: ', exp)
         logging.error('Error create user: ' + str(exp))'''
     text = ''
-    if responce.status_code>=400:
-        text=f'<h2>{responce.status_code} Error</h2>'
-    return {'message':text,'code':responce.status_code}
+    if responce.status_code >= 400:
+        text = f'<h2>{responce.status_code} Error</h2>'
+    return {'message': text, 'code': responce.status_code}
+
 
 @app.route('/catchwh/<string:script>', methods=['GET'])
 def catchwhget(script):
     app.logger.info(script)
     return call_script(script)
 
-@app.route('/catchwh/', methods=['POST','GET'])
+
+@app.route('/catchwh/', methods=['POST', 'GET'])
 def catchwh():
     app.logger.info(f"method: {request.method}")
     result = dict()
     if request.method == 'POST':
-        script=None
+        script = None
         data = None
         if request.is_json:
             data = request.get_json()
@@ -208,46 +246,48 @@ def catchwh():
         app.logger.info(f"args: {request.args}, {script}")
         if script:
             app.logger.info(f"get via GET: {script}")
-            result=call_script(script)
+            result = call_script(script)
 
     response = make_response(result['message'], int(result['code']))
     response.headers["Content-Type"] = "application/json"
     return response
 
-def check_errors(stdout,stderr):
+
+def check_errors(stdout, stderr):
     out = ''
     error = ''
-    error_code =500
-    len_out=0
-    len_err=0
-    if isinstance(stdout,int) or isinstance(stderr,int):
+    error_code = 500
+    len_out = 0
+    len_err = 0
+    if isinstance(stdout, int) or isinstance(stderr, int):
         return dict(result=error_code, error='Exec exception')
     for line in stdout:
-        out+=line.strip('\n')
-        len_out=1
+        out += line.strip('\n')
+        len_out = 1
     for line in stderr:
-        error+=line.strip('\n')
-        len_err=1
-    if len_out>0:
+        error += line.strip('\n')
+        len_err = 1
+    if len_out > 0:
         app.logger.info(f'OUT: {out}')
-        if out.upper().rstrip()=='OK':
-            error_code=200
-            error='OK'
-    if len_err>0:
+        if out.upper().rstrip() == 'OK':
+            error_code = 200
+            error = 'OK'
+    if len_err > 0:
         if 'No such file or directory' in error:
-            error='Script error'
+            error = 'Script error'
 
     return dict(code=error_code, message=error)
+
 
 def call_script(script):
     app.logger.info(script)
     call_arr = []
-    #call_arr = [{config['sudo']}, 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
-    #if config['fromuser'] and config['fromuser']!='':
+    # call_arr = [{config['sudo']}, 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
+    # if config['fromuser'] and config['fromuser']!='':
     #    call_arr = ['/usr/bin/sudo', '-u', f"{config['fromuser']}", 'ssh', f"{config['user']}@{config['host']}", f"{config['path']}{script}"]
     app.logger.info(str(call_arr))
-    #result = subprocess.call(call_arr)
-    stdin, stdout, stderr = (555,555,555)
+    # result = subprocess.call(call_arr)
+    stdin, stdout, stderr = (555, 555, 555)
     app.logger.info(f"try to connect... hostname={config['host']}, username={config['user']}, port={config['port']}")
     try:
         ssh.connect(hostname=config['host'], username=config['user'], port=config['port'], pkey=ssh_key)
@@ -266,9 +306,9 @@ def call_script(script):
     except Exception as exp:
         app.logger.error(f'pure exception: {exp}')
 
-    return check_errors(stdout,stderr) #{'result':stdout, 'error': stderr}
+    return check_errors(stdout, stderr)  # {'result':stdout, 'error': stderr}
+
 
 if __name__ == '__main__':
-
     app.logger.info('run app on 0.0.0.0:5000')
     app.run(host='0.0.0.0')

@@ -4,12 +4,15 @@ import xml.etree.ElementTree as ET
 
 class Config():
 
-    def __init__(self):
+    def __init__(self, path=None):
         print('init config')
-        config = dict()
+        self.config = dict()
+        self.path=''
+        if path:
+            self.path=''.join([path.rstrip(), '/'])
 
     def get_config(self):
-        tree = ET.parse('config/config.xml')
+        tree = ET.parse(f'{self.path}config/config.xml')
         root = tree.getroot()
         # все данные
         #print('Expertise Data:')
