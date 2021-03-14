@@ -53,22 +53,6 @@ app.logger.addHandler(handler)
 def readconfig():
     config = dict(host='localhost', user='noboby', path='/tmp', fromuser='', sudo='/usr/bin/sudo', port='22',
                   sshkey='key')
-    '''path =  os.path.abspath("config.xml") #'config.xml'
-    print(path)
-    app.logger.info(path)
-    tree = ET.parse('config.xml')
-    root = tree.getroot()
-    for key,value in config.items():
-        try:
-            print(key)
-            node = root.find(f'./{key}')
-            if node.text:
-                config[key] = node.text
-            if key=='port' and (node.text=='' or node.text==None):
-                config[key]=22
-        except BaseException as exp:
-            app.logger.error(str(exp))
-            app.logger.error('check config')'''
     config = Config(BASEPATH).get_config()
     if not config['port']:
         config['port'] = 22
