@@ -60,75 +60,14 @@ def readconfig():
 
 
 config = readconfig()
-print(config)
-exit(0)
 app.logger.info(config)
-ssh_key = paramiko.RSAKey.from_private_key_file(f"keys/{config['sshkey']}")
+ssh_key = paramiko.RSAKey.from_private_key_file(f"{BASEPATH}/keys/{config['sshkey']}")
 
 
 @app.route('/')
 def hello_world():
     app.logger.info('hello_world page')
     return 'Hello World!'
-
-
-def create_ticket_in_sd(tmpl_text, user, message_id):
-    ticket = None
-    query = f"{RHOST}api/v1/tickets"
-    print(query)
-    create_json = {
-        "title": tmpl_text[:30],
-        "group": "Users",
-        "customer": user['login'],
-        "state_id": 1,
-        "article": {
-            "subject": tmpl_text[:30],
-            "body": tmpl_text,
-            "type": "note",
-            "internal": False,
-            # "type": "telegram personal-message",
-            "sender": "Customer",
-            "to": "@ist_dit_tmpl_bot",  # IST_SD_BOT
-            # "reply_to": "@TGW-BOT-GRP",
-            # "preferences": {
-            #    "message": {
-            #        "message_id": str(message_id) + '.' + str(user['login']) + '@telegram',
-            #        "from": {
-            #            "id": user['login'],
-            #            "is_bot": False,
-            #            "first_name": user['first_name'],
-            #            "last_name": user['last_name'],
-            #            "language_code": "ru"
-            #        }
-            #    },
-            #    "update_id": 956427754
-            # },
-        },
-        "note": tmpl_text,
-        "sdrequesttype": "addmask",
-        "preferences": {
-            "channel_id": config['channel']['id'],
-            "telegram": {
-                "bid": (config['token'].split(':'))[0],
-                "chat_id": int(user['login'])},
-        }
-    }
-    responce = requests.post(query, auth=(RUSER, RPASSWORD), json=create_json)
-    try:
-        if responce.status_code == 200 or responce.status_code == 201:
-            if isinstance(responce.json(), dict):
-                ticket = responce.json()
-                print(ticket)
-                return dict(id=ticket['id'],
-                            number=ticket['number'],
-                            title=ticket['title'],
-                            tmplbeeline=ticket['tmpbeeline'],
-                            tmplmegafon=ticket['tmplmegafone'])
-    except BaseException as exp:
-        print('Error create user: ', exp)
-        logging.error('Error create user: ' + str(exp))
-    return None
-
 
 def create_ticket(data):
     '''
@@ -175,25 +114,37 @@ def create_ticket(data):
         'Authorization': f"Token token={config['zammad']['token']}"
     }
     print(headers)
-    responce = requests.post(query, headers=headers, json=create_json)
-    app.logger.info(f'result create ticket: {responce.status_code}')
-    '''try:
-        print( responce.status_code)
-        if responce.status_code == 201:
-            if isinstance(responce.json(), dict):
-                ticket = responce.json()
-                print(ticket)
-                return dict(id=ticket['id'],
-                            number=ticket['number'],
-                            title=ticket['title'],
-                            tmplbeeline=ticket['tmpbeeline'],
-                            tmplmegafon=ticket['tmplmegafone'])
-    except BaseException as exp:
-        print('Error create user: ', exp)
-        logging.error('Error create user: ' + str(exp))'''
-    text = ''
-    if responce.status_code >= 400:
-        text = f'<h2>{responce.status_code} Error</h2>'
+    exception = False
+    try:
+        responce = requests.post(query, headers=headers, json=create_json)
+        app.logger.info(f'result create ticket: {responce.status_code}')
+        '''try:
+            print( responce.status_code)
+            if responce.status_code == 201:
+                if isinstance(responce.json(), dict):
+                    ticket = responce.json()
+                    print(ticket)
+                    return dict(id=ticket['id'],
+                                number=ticket['number'],
+                                title=ticket['title'],
+                                tmplbeeline=ticket['tmpbeeline'],
+                                tmplmegafon=ticket['tmplmegafone'])
+        except BaseException as exp:
+            print('Error create user: ', exp)
+            logging.error('Error create user: ' + str(exp))'''
+        text = ''
+        if responce.status_code >= 400:
+            text = f'<h2>{responce.status_code} Error</h2>'
+    except ConnectionError as exp:
+        app.logger.error(f'Connection error: {exp}')
+        return {'message': '502 Server Connection Error', 'code': 502}
+    except TimeoutError as exp:
+        app.logger.error(f'Timeout error: {exp}')
+        return {'message': '408 Request Timeout Error', 'code': 408}
+    except request.ro as exp:
+        app.logger.error(f'BaseException error: {exp}')
+        return {'message': '500 Server  Error', 'code': 500}
+
     return {'message': text, 'code': responce.status_code}
 
 
